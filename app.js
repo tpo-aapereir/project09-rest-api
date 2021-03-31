@@ -6,7 +6,8 @@ const morgan = require('morgan');
 const { sequelize } = require('./models')
 const getRouter = require('./routes/get')
 const postRouter = require('./routes/post')
-
+const putRouter = require('./routes/put')
+const deleteRouter = require('./routes/delete')
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
 
@@ -42,7 +43,7 @@ console.log('Testing the connection to the database...');
 })()
 
 // Main router
-app.use('/api', getRouter, postRouter)
+app.use('/api', getRouter, postRouter, putRouter, deleteRouter)
 
 // Root router
 app.get('/', (req, res) => {

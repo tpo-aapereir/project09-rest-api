@@ -135,11 +135,59 @@ describe('The API meets expectations', () => {
       }
       expect(actual).to.equal(data.title)
     })
+    it('GET - /courses/:id will return a 201 status code', () => {
+      expect(res.status).to.equal(201)
+    })
+    it('POST - set the Location header to "/api/courses/newid"', async () => {
+      const actual = await Course.findOne({ where: { title: 'first test course' } })
+      expect(res.headers.location).to.equal(`/api/courses/${actual.id}`)
+    })
+    // PUT COURSES starts here
+    it('PUT - the put route will update a course', async () => {
+      let actual
+      let data
+      try {
+        data = await Course.findOne({ where: { title: 'first test course' } })
+        data = data.dataValues
+        data.description = 'the updated description'
+        const axiosConfig = createToken(joeEmail, joePW, `http://localhost:5000/api/courses/${data.id}`, 'put', data)
+        res = await axios(axiosConfig)
+        actual = await Course.findOne({ where: { title: data.title } })
+        actual = actual.description
+      } catch (error) {
+        actual = error.message
+      }
+      expect(actual).to.equal(data.description)
+    })
+    it('GET - /courses/:id will return a 204 status code', () => {
+      expect(res.status).to.equal(204)
+    })
+    // DELETE ROUTE starts here
+    it('DELETE - this will delete a course', async () => {
+      let actual
+      let data
+      try {
+        data = await Course.findOne({ where: { title: 'first test course' } })
+        const axiosConfig = createToken(joeEmail, joePW, `http://localhost:5000/api/courses/${data.id}`, 'delete')
+        res = await axios(axiosConfig)
+        actual = await Course.findOne({ where: { title: data.title } })
+      } catch (error) {
+        actual = error.message
+      }
+      expect(actual).to.be.null
+    })
+    it('GET - /courses/:id will return a 204 status code', () => {
+      expect(res.status).to.equal(204)
+    })
   // COURSES ends here
   })
   // end of meets
   after('delete the test user', async () => {
     const user = await User.findOne({ where: { emailAddress: testEmail } })
     user ? await user.destroy() : false
+  })
+  after('delete the test course', async () => {
+    const course = await Course.findOne({ where: { title: 'first test course' } })
+    course ? await course.destroy() : false
   })
 })
