@@ -143,6 +143,26 @@ describe('The API meets expectations', () => {
       expect(res.headers.location).to.equal(`/api/courses/${actual.id}`)
     })
     // PUT COURSES starts here
+    it('PUT - this will return "access denied" if user is not authorized to update', async () => {
+      let actual
+      let data
+      try {
+        data = await Course.findOne({ where: { title: 'first test course' } })
+        data = data.dataValues
+        data.description = 'the updated description'
+        const axiosConfig = createToken(testEmail, testPW, `http://localhost:5000/api/courses/${data.id}`, 'put', data)
+        res = await axios(axiosConfig)
+        actual = await Course.findOne({ where: { title: data.title } })
+        actual = actual.description
+      } catch (error) {
+        actual = error.response.data.message
+        res = error.response
+      }
+      expect(actual).to.equal('Access Denied')
+    })
+    it('PUT - /courses/:id without user authentication will return a 403 status code', () => {
+      expect(res.status).to.equal(403)
+    })
     it('PUT - the put route will update a course', async () => {
       let actual
       let data
@@ -163,6 +183,23 @@ describe('The API meets expectations', () => {
       expect(res.status).to.equal(204)
     })
     // DELETE ROUTE starts here
+    it('DELETE - this will return "access denied" if user is not authorized to delete', async () => {
+      let actual
+      let data
+      try {
+        data = await Course.findOne({ where: { title: 'first test course' } })
+        const axiosConfig = createToken(testEmail, testPW, `http://localhost:5000/api/courses/${data.id}`, 'delete')
+        res = await axios(axiosConfig)
+        actual = await Course.findOne({ where: { title: data.title } })
+      } catch (error) {
+        actual = error.response.data.message
+        res = error.response
+      }
+      expect(actual).to.equal('Access Denied')
+    })
+    it('DELETE - /courses/:id without user authentication will return a 403 status code', () => {
+      expect(res.status).to.equal(403)
+    })
     it('DELETE - this will delete a course', async () => {
       let actual
       let data

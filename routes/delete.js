@@ -8,10 +8,15 @@ const router = express.Router()
 router.delete('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
   try {
     const course = await Course.findOne({
-      where: { id: req.params.id }
+      where: { id: req.params.id },
+      include: { model: User }
     })
-    await course.destroy()
-    res.status(204).end()
+    if (req.currentUser.emailAddress === course.User.emailAddress) {
+      await course.destroy()
+      res.status(204).end()
+    } else {
+      res.status(403).json({ message: 'Access Denied' })
+    }
   } catch (error) {
     if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
       const errors = error.errors.map(err => err.message)
