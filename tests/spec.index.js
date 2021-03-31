@@ -87,7 +87,32 @@ describe('The API meets expectations', () => {
     it('GET - /courses/ will return the owner information with the course', () => {
       expect(actual[0].User.emailAddress).to.equal(courses[0].dataValues.User.dataValues.emailAddress)
     })
-    
+    it('GET - /courses/ will NOT return the excluded attributes', () => {
+      expect(actual[0].User.password).to.be.undefined
+    })
+    it('GET - the get /courses/:id route will return corresponding course including the user that owns that course', async () => {
+      try {
+        courses = await Course.findOne({
+          where: { id: 2 },
+          include: { model: User }
+        })
+        res = await axios.get('http://localhost:5000/api/courses/2')
+        actual = res.data.course.title
+      } catch (error) {
+        actual = error.message
+      }
+      expect(actual).to.equal(courses.dataValues.title)
+    })
+    it('GET - /courses/:id will return a 200 status code', () => {
+      expect(res.status).to.equal(200)
+    })
+    it('GET - /courses/:id will return the owner information with the course', () => {
+      expect(res.data.course.User.emailAddress).to.equal(courses.dataValues.User.dataValues.emailAddress)
+    })
+    it('GET - /courses/:id will NOT return the excluded attributes', () => {
+      expect(res.data.course.User.password).to.be.undefined
+    })
+
   // COURSES ends here
   })
   // end of meets
