@@ -112,7 +112,29 @@ describe('The API meets expectations', () => {
     it('GET - /courses/:id will NOT return the excluded attributes', () => {
       expect(res.data.course.User.password).to.be.undefined
     })
+    // GET COURSES stops here
 
+    // POST COURSES starts here
+    it('POST - the post route will create a new course', async () => {
+      let actual
+      let data
+      try {
+        data = {
+          title: 'first test course',
+          description: 'this is a test course',
+          estimatedTime: 'just a little while',
+          materialsNeeded: 'bring yourself and a laptop',
+          userId: 1
+        }
+        const axiosConfig = createToken(joeEmail, joePW, 'http://localhost:5000/api/courses', 'post', data)
+        res = await axios(axiosConfig)
+        actual = await Course.findOne({ where: { title: data.title } })
+        actual = actual.title
+      } catch (error) {
+        actual = error.message
+      }
+      expect(actual).to.equal(data.title)
+    })
   // COURSES ends here
   })
   // end of meets

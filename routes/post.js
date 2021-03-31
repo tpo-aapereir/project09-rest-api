@@ -19,5 +19,18 @@ router.post('/users', asyncHandler(async (req, res) => {
     }
   }
 }))
+router.post('/courses', authenticateUser, asyncHandler(async (req, res) => {
+  try {
+    await Course.create(req.body)
+    res.redirect(201, '/')
+  } catch (error) {
+    if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+      const errors = error.errors.map(err => err.message)
+      res.status(400).json({ errors })
+    } else {
+      throw error
+    }
+  }
+}))
 
 module.exports = router
