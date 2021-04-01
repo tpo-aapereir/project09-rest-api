@@ -5,25 +5,17 @@ const { authenticateUser } = require('../middleware/auth-user')
 
 const router = express.Router()
 
+// DELETE /api/courses/:id DELETE route that will delete the corresponding course and return a 204 HTTP status code and no content.
 router.delete('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
-  try {
-    const course = await Course.findOne({
-      where: { id: req.params.id },
-      include: { model: User }
-    })
-    if (req.currentUser.emailAddress === course.User.emailAddress) {
-      await course.destroy()
-      res.status(204).end()
-    } else {
-      res.status(403).json({ message: 'Access Denied' })
-    }
-  } catch (error) {
-    if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
-      const errors = error.errors.map(err => err.message)
-      res.status(400).json({ errors })
-    } else {
-      throw error
-    }
+  const course = await Course.findOne({
+    where: { id: req.params.id },
+    include: { model: User }
+  })
+  if (req.currentUser.emailAddress === course.User.emailAddress) {
+    await course.destroy()
+    res.status(204).end()
+  } else {
+    res.status(403).json({ message: 'Access Denied' })
   }
 }))
 

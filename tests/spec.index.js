@@ -17,7 +17,7 @@ function createToken (username, password, url, method, data) {
   return { method: method, url: url, data: data, headers: { 'Authorization': 'Basic '+ encodedToken } }
 }
 
-describe('The API meets expectations', () => {
+describe('The API exceeds expectations', () => {
   // Test user info
   const testEmail = 'test@email.com'
   const testFName = 'fName'
@@ -38,6 +38,9 @@ describe('The API meets expectations', () => {
     })
     it('The GET test will return a 200 status code', () => {
       expect(authenticatedUser.status).to.equal(200)
+    })
+    it('GET- the get /users/ route will NOT return the excluded attributes', () => {
+      expect(authenticatedUser.data.user.password).to.be.undefined
     })
     it('POST - the post route will create a new user', async () => {
       let actual
@@ -142,6 +145,8 @@ describe('The API meets expectations', () => {
       const actual = await Course.findOne({ where: { title: 'first test course' } })
       expect(res.headers.location).to.equal(`/api/courses/${actual.id}`)
     })
+    // POST ROUTES starts here
+
     // PUT COURSES starts here
     it('PUT - this will return "access denied" if user is not authorized to update', async () => {
       let actual
@@ -182,6 +187,7 @@ describe('The API meets expectations', () => {
     it('GET - /courses/:id will return a 204 status code', () => {
       expect(res.status).to.equal(204)
     })
+
     // DELETE ROUTE starts here
     it('DELETE - this will return "access denied" if user is not authorized to delete', async () => {
       let actual
@@ -216,15 +222,180 @@ describe('The API meets expectations', () => {
     it('GET - /courses/:id will return a 204 status code', () => {
       expect(res.status).to.equal(204)
     })
-  // COURSES ends here
+
+
+  
+    // COURSES ends here
   })
   // end of meets
+
+})
+// tests for error handling
+describe('Tests for error handling', () => {
+  // Test user info
+  const testEmail = 'test@email.com'
+  const testFName = 'fName'
+  const testLName = 'lName'
+  const testPW = 'testPassword'
+  const invalidFName = ''
+
+  // Invalid user info
+  const invalidEmail = 'invalid@email.com'
+  const invalidPW = 'invalidpw'
+  const invalidEmailFormat = 'invalidemail.com'
+
+    // Joe's user info
+    const joeEmail = 'joe@smith.com'
+    const joePW = 'joepassword'
+
+  describe(' Authentication Middleware Tests', () => {
+    let actual
+    it('GET - the get /user/ will return access denied if authorization header not present', async () => {
+      try {
+        await axios.get('http://localhost:5000/api/users')
+      } catch (error) {
+        actual = error
+      }
+      expect(actual.response.data.message).to.equal('Access Denied')
+    })
+    it('GET - the get /user/ will reutrn status 401 if authorization header not present', async () => {
+      expect(actual.response.status).to.equal(401)
+    })
+    it('GET - the get /user/ will return access denied if password is not correct', async () => {
+      try {
+        const axiosConfig = createToken(testEmail, invalidPW, `http://localhost:5000/api/users`, 'get')
+        await axios(axiosConfig)
+      } catch (error) {
+        actual = error
+      }
+      expect(actual.response.data.message).to.equal('Access Denied')
+    })
+    it('GET - the get /user/ will reutrn status 401 if password is not correct', async () => {
+      expect(actual.response.status).to.equal(401)
+    })
+    it('GET - the get /user/ will return access denied if username is not in the database', async () => {
+      try {
+        const axiosConfig = createToken(invalidEmail, invalidPW, `http://localhost:5000/api/users`, 'get')
+        await axios(axiosConfig)
+      } catch (error) {
+        actual = error
+      }
+      expect(actual.response.data.message).to.equal('Access Denied')
+    })
+    it('GET - the get /user/ will reutrn status 401 if username is not in the database', async () => {
+      expect(actual.response.status).to.equal(401)
+    })
+  // end of middleware tests
+  })
+  describe('Sequelize validation error tests', () => {
+    let actual
+    let data
+    it('PUT - SequelizeValidationError "Description cannot be empty" thrown if "description" is blank', async () => {
+      try {
+        data = await Course.findOne({ where: { id: 1 } })
+        data = data.dataValues
+        data.description = ''
+        const axiosConfig = createToken(joeEmail, joePW, `http://localhost:5000/api/courses/${data.id}`, 'put', data)
+        await axios(axiosConfig)
+        actual = await Course.findOne({ where: { title: data.title } })
+      } catch (error) {
+        actual = error
+      }
+      expect(actual.response.data.errors[0]).to.equal('Description cannot be empty')
+    })
+    it('PUT - 400 status code thrown if "description" is blank', async () => {
+      expect(actual.response.status).to.equal(400)
+    })
+    it('POST - SequelizeValidationError "Description cannot be empty" thrown if "description" is blank', async () => {
+      try {
+        data = {
+          title: 'First test course',
+          description: '',
+          estimatedTime: 'just a little while',
+          materialsNeeded: 'bring yourself and a laptop',
+          userId: 1
+        }
+        const axiosConfig = createToken(joeEmail, joePW, 'http://localhost:5000/api/courses', 'post', data)
+        await axios(axiosConfig)
+      } catch (error) {
+        actual = error
+      }
+      expect(actual.response.data.errors[0]).to.equal('Description cannot be empty')
+    })
+    it('POST - 400 status code thrown if "description" is blank', async () => {
+      expect(actual.response.status).to.equal(400)
+    })
+    it('POST - SequelizeValidationError "First name cannot be empty" thrown if "First name" is blank', async () => {
+      try {
+        const data = {
+          firstName: invalidFName,
+          lastName: testLName,
+          emailAddress: testEmail,
+          password: testPW
+        }
+        await axios.post('http://localhost:5000/api/users', data)
+      } catch (error) {
+        actual = error
+      }
+      expect(actual.response.data.errors[0]).to.equal('First Name cannot be empty')
+    })
+    it('POST - 400 status code thrown if "First name" is blank', async () => {
+      expect(actual.response.status).to.equal(400)
+    })
+    it('POST - SequelizeValidationError "The email entered is already in use. Please use a different email or log in" thrown if email is already in database', async () => {
+      try {
+        const data = {
+          firstName: testFName,
+          lastName: testLName,
+          emailAddress: testEmail,
+          password: testPW
+        }
+        await axios.post('http://localhost:5000/api/users', data)
+      } catch (error) {
+        actual = error
+      }
+      expect(actual.response.data.errors[0]).to.equal('The email entered is already in use. Please use a different email or log in')
+    })
+    it('POST - 400 status code thrown if email exists in database when creating a new user', async () => {
+      expect(actual.response.status).to.equal(400)
+    })
+    it('POST - SequelizeValidationError "Please enter a valid email address" thrown if email is already in database', async () => {
+      try {
+        const data = {
+          firstName: testFName,
+          lastName: testLName,
+          emailAddress: invalidEmailFormat,
+          password: testPW
+        }
+        await axios.post('http://localhost:5000/api/users', data)
+      } catch (error) {
+        actual = error
+      }
+      expect(actual.response.data.errors[0]).to.equal('Please enter a valid email address')
+    })
+    it('POST - 400 status code thrown if email exists in database when creating a new user', async () => {
+      expect(actual.response.status).to.equal(400)
+    })
+    it('Confirm test users password was hashed when added to database', async () => {
+      let user
+      let actual
+      try {
+        user = await User.findOne({ where: { emailAddress: testEmail } })
+      } catch (error) {
+        actual = error
+      }
+      expect(user.password).to.not.equal(testPW)
+    })
+  // Validation error end
+  })
+
+  // The cleanup!
   after('delete the test user', async () => {
     const user = await User.findOne({ where: { emailAddress: testEmail } })
     user ? await user.destroy() : false
   })
   after('delete the test course', async () => {
-    const course = await Course.findOne({ where: { title: 'first test course' } })
+    const course = await Course.findOne({ where: { title: 'First test course' } })
     course ? await course.destroy() : false
   })
 })

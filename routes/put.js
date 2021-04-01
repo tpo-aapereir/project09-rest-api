@@ -5,6 +5,8 @@ const { authenticateUser } = require('../middleware/auth-user')
 
 const router = express.Router()
 
+// POST /api/courses route that will create a new course, set the Location header to the URI for the newly created course,
+// and return a 201 HTTP status code and no content.
 router.put('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
   try {
     const course = await Course.findOne({
